@@ -20,9 +20,12 @@ local function onKeyPress(input, gameProcessed)
 
     if input.KeyCode == keyToBind then
         loadstring(game:HttpGet("https://raw.githubusercontent.com/omwfh/svelte/refs/heads/main/t%2Bg.lua"))()
-        task.wait(0.01)
-        --notif("Loaded", "Loaded T+B", 2)
-        print("Count: " .. LTimes + 1)
+	LTimes = LTimes + 1
+        
+	task.wait(0.01)
+        
+	--notif("Loaded", "Loaded T+B", 2)
+        print("Count: " .. LTimes)
     end
 end
 
