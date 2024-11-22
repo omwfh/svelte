@@ -1,7 +1,7 @@
 local UserInputService = game:GetService("UserInputService")
 
 local KB = _G.K
-local TB = Enum.KeyCode.Colon
+local TB = Enum.KeyCode.QuotedDouble
 local MG = Enum.KeyCode.P
 
 local LTimes = 0
