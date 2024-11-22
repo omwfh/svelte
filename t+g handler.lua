@@ -2,7 +2,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local KB = _G.K
 local TB = Enum.KeyCode.Colon
-local MG = Enum.KeyCode.T
+local MG = Enum.KeyCode.P
 
 local LTimes = 0
 local hasExecuted = false
