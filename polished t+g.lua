@@ -9,6 +9,11 @@ local trainingFolder = Workspace.TrainingBalls
 
 local lastBallPressed, isKeyPressed = nil, false
 
+local value1 = 0.265
+local value2 = 0.01
+local value3 = 0.03
+local value4 = 0.5
+
 local function getPlayerPing()
     local stats = game:GetService("Stats")
     local networkStats = stats.Network
@@ -50,10 +55,11 @@ local function calculateThreshold(ball, player)
     if not rootPart then return math.huge end
 
     local distance = (ball.Position - rootPart.Position).Magnitude
+    local closeCombatFactor = 1 / math.max(distance, 1)
 
     local baseThreshold = 0.265
     local velocityFactor = ball.Velocity.magnitude * 0.01
-    local distanceFactor = distance * 0.03
+    local distanceFactor = distance * 0.03 * closeCombatFactor
 
     return math.max(baseThreshold, 0.5 - velocityFactor - distanceFactor)
 end
@@ -102,6 +108,11 @@ local function checkBallsProximity()
             checkProximityToPlayer(ball, player)
         end
     end
+
+    print("baseThreshold: " .. value1)
+    print("velocityFactor: " .. value2)
+    print("distanceFactor: " .. value3)
+    print("math.max: " .. value4)
 end
 
 RunService.RenderStepped:Connect(checkBallsProximity)
