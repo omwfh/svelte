@@ -9,10 +9,10 @@ local trainingFolder = Workspace.TrainingBalls
 
 local lastBallPressed, isKeyPressed = nil, false
 
-local value1 = 0.235
-local value2 = 0.01
-local value3 = 0.03
-local value4 = 0.5
+local value1 = 0.245
+local value2 = 0.015
+local value3 = 0.0362
+local value4 = 0.532
 
 local function printvalues()
     task.wait()
