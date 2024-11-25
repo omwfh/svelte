@@ -32,7 +32,7 @@ local function resolveVelocity(ball, ping)
     local currentPosition = ball.Position
     local currentVelocity = ball.Velocity
 
-    local rtt = ping / 1000 * 10
+    local rtt = ping / 1000 * 6.5
 
     local predictedPosition = currentPosition + currentVelocity * rtt
     return predictedPosition
