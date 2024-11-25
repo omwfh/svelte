@@ -10,8 +10,8 @@ local trainingFolder = Workspace.TrainingBalls
 local lastBallPressed, isKeyPressed = nil, false
 
 local value1 = 0.2
-local value2 = 0.01
-local value3 = 0.03
+local value2 = 0.015
+local value3 = 0.02
 local value4 = 0.35
 
 local function printvalues()
@@ -68,7 +68,7 @@ local function calculateThreshold(ball, player)
     local pingCompensation = ping * 2
     local baseThreshold = value1 + pingCompensation
 
-    local velocityFactor = math.pow(ball.Velocity.magnitude, 1) * value2
+    local velocityFactor = math.pow(ball.Velocity.magnitude, 1.5) * value2
     local distanceFactor = distance * value3
 
     return math.max(baseThreshold, value4 - velocityFactor - distanceFactor)
