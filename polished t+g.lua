@@ -11,8 +11,8 @@ local lastBallPressed, isKeyPressed = nil, false
 
 local value1 = 0.245
 local value2 = 0.015
-local value3 = 0.0362
-local value4 = 0.532
+local value3 = 0.035
+local value4 = 0.5
 
 local function printvalues()
     task.wait()
