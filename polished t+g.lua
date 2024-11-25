@@ -12,7 +12,7 @@ local lastBallPressed, isKeyPressed = nil, false
 local value1 = 0.2352
 local value2 = 0.0126
 local value3 = 0.0311
-local value4 = 0.521
+local value4 = 0.5
 
 local function printvalues()
     task.wait()
@@ -62,7 +62,7 @@ local function calculateThreshold(ball, player)
     local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return math.huge end
 
-    local ping = getPlayerPing() * 1000
+    local ping = getPlayerPing() / 1000
     local distance = (ball.Position - rootPart.Position).Magnitude
 
     local closeCombatFactor = 1 / math.max(distance, 1)
