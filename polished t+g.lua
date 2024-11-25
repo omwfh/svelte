@@ -32,7 +32,7 @@ local function resolveVelocity(ball, ping)
     local currentPosition = ball.Position
     local currentVelocity = ball.Velocity
 
-    local rtt = ping / 1000
+    local rtt = ping / 1000 * 2
 
     local predictedPosition = currentPosition + currentVelocity * rtt
     return predictedPosition
@@ -65,7 +65,7 @@ local function calculateThreshold(ball, player)
     local ping = getPlayerPing() / 1000
     local distance = (ball.Position - rootPart.Position).Magnitude
 
-    local pingCompensation = ping * 2
+    local pingCompensation = ping
     local baseThreshold = value1 + pingCompensation * 0.03
 
     local velocityFactor = math.pow(ball.Velocity.magnitude, 1.5) * value2
