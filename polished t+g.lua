@@ -14,6 +14,10 @@ local value2 = 0.01
 local value3 = 0.03
 local value4 = 0.5
 
+local function sigmoid(x)
+    return 1 / (1 + math.exp(-x))
+end
+
 local function printvalues()
     task.wait()
     print("baseThreshold: " .. value1)
@@ -62,11 +66,15 @@ local function calculateThreshold(ball, player)
     local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return math.huge end
 
+    local ping = getPlayerPing() / 1000
     local distance = (ball.Position - rootPart.Position).Magnitude
-    local closeCombatFactor = 1 / math.max(distance, 1)
 
-    local baseThreshold = value1
-    local velocityFactor = ball.Velocity.magnitude * value2
+    local closeCombatFactor = sigmoid(-distance / 10 + 5)
+
+    local pingCompensation = ping * 2
+    local baseThreshold = value1 + pingCompensation
+
+    local velocityFactor = math.pow(ball.Velocity.magnitude, 1.5) * value2
     local distanceFactor = distance * value3 * closeCombatFactor
 
     return math.max(baseThreshold, value4 - velocityFactor - distanceFactor)
