@@ -9,10 +9,14 @@ local trainingFolder = Workspace.TrainingBalls
 
 local lastBallPressed, isKeyPressed = nil, false
 
-local value1 = 0.2352
-local value2 = 0.0126
-local value3 = 0.0311
+local value1 = 0.235
+local value2 = 0.01
+local value3 = 0.03
 local value4 = 0.5
+
+local function sigmoid(x)
+    return 1 / (1 + math.exp(-x))
+end
 
 local function printvalues()
     task.wait()
@@ -65,7 +69,7 @@ local function calculateThreshold(ball, player)
     local ping = getPlayerPing() / 1000
     local distance = (ball.Position - rootPart.Position).Magnitude
 
-    local closeCombatFactor = 1 / math.max(distance, 1)
+    local closeCombatFactor = sigmoid(-distance / 15 * 0.05)
 
     local pingCompensation = ping * 2
     local baseThreshold = value1 + pingCompensation
