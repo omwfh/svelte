@@ -14,6 +14,14 @@ local value2 = 0.01
 local value3 = 0.03
 local value4 = 0.5
 
+local function printvalues()
+    task.wait()
+    print("baseThreshold: " .. value1)
+    print("velocityFactor: " .. value2)
+    print("distanceFactor: " .. value3)
+    print("math.max: " .. value4)
+end
+
 local function getPlayerPing()
     local stats = game:GetService("Stats")
     local networkStats = stats.Network
@@ -57,11 +65,11 @@ local function calculateThreshold(ball, player)
     local distance = (ball.Position - rootPart.Position).Magnitude
     local closeCombatFactor = 1 / math.max(distance, 1)
 
-    local baseThreshold = 0.265
-    local velocityFactor = ball.Velocity.magnitude * 0.01
-    local distanceFactor = distance * 0.03 * closeCombatFactor
+    local baseThreshold = value1
+    local velocityFactor = ball.Velocity.magnitude * value2
+    local distanceFactor = distance * value3 * closeCombatFactor
 
-    return math.max(baseThreshold, 0.5 - velocityFactor - distanceFactor)
+    return math.max(baseThreshold, value4 - velocityFactor - distanceFactor)
 end
 
 local function checkProximityToPlayer(ball, player)
@@ -108,11 +116,7 @@ local function checkBallsProximity()
             checkProximityToPlayer(ball, player)
         end
     end
-
-    print("baseThreshold: " .. value1)
-    print("velocityFactor: " .. value2)
-    print("distanceFactor: " .. value3)
-    print("math.max: " .. value4)
 end
 
+printvalues()
 RunService.RenderStepped:Connect(checkBallsProximity)
