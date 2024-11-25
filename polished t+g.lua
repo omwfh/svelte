@@ -10,8 +10,8 @@ local trainingFolder = Workspace.TrainingBalls
 local lastBallPressed, isKeyPressed = nil, false
 
 local value1 = 0.245
-local value2 = 0.015
-local value3 = 0.035
+local value2 = 0.01
+local value3 = 0.03
 local value4 = 0.5
 
 local function printvalues()
@@ -32,7 +32,7 @@ local function resolveVelocity(ball, ping)
     local currentPosition = ball.Position
     local currentVelocity = ball.Velocity
 
-    local rtt = ping / 1000 * 6.5
+    local rtt = ping / 1000 * 3
 
     local predictedPosition = currentPosition + currentVelocity * rtt
     return predictedPosition
