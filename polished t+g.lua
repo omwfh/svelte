@@ -51,11 +51,11 @@ local function calculateThreshold(ball, player)
 
     local distance = (ball.Position - rootPart.Position).Magnitude
 
-    local baseThreshold = 0.25
+    local baseThreshold = 0.27
     local velocityFactor = ball.Velocity.magnitude * 0.015
     local distanceFactor = distance * 0.03
 
-    return math.max(baseThreshold, 0.5 - velocityFactor - distanceFactor)
+    return math.max(baseThreshold, 0.55 - velocityFactor - distanceFactor)
 end
 
 local function checkProximityToPlayer(ball, player)
