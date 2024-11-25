@@ -9,10 +9,10 @@ local trainingFolder = Workspace.TrainingBalls
 
 local lastBallPressed, isKeyPressed = nil, false
 
-local value1 = 0.23
-local value2 = 0.01
-local value3 = 0.03
-local value4 = 0.5
+local value1 = 0.2352
+local value2 = 0.0126
+local value3 = 0.0311
+local value4 = 0.521
 
 local function printvalues()
     task.wait()
@@ -62,7 +62,7 @@ local function calculateThreshold(ball, player)
     local rootPart = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
     if not rootPart then return math.huge end
 
-    local ping = getPlayerPing() / 1000
+    local ping = getPlayerPing() * 1000
     local distance = (ball.Position - rootPart.Position).Magnitude
 
     local closeCombatFactor = 1 / math.max(distance, 1)
@@ -70,7 +70,7 @@ local function calculateThreshold(ball, player)
     local pingCompensation = ping * 2
     local baseThreshold = value1 + pingCompensation
 
-    local velocityFactor = math.pow(ball.Velocity.magnitude, 1.5) * value2
+    local velocityFactor = math.pow(ball.Velocity.magnitude, 1) * value2
     local distanceFactor = distance * value3 * closeCombatFactor
 
     return math.max(baseThreshold, value4 - velocityFactor - distanceFactor)
