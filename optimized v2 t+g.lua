@@ -41,6 +41,8 @@ local function printValues()
     print("Velocity Factor: " .. currentConfig.value2)
     print("Distance Factor: " .. currentConfig.value3)
     print("math.max: " .. currentConfig.value4)
+    print("-------------------------------------------------------------")
+    print("-------------------------------------------------------------")
 end
 
 local function getPlayerPing()
@@ -76,6 +78,7 @@ local function calculatePredictionTime(ball, player)
     if rootPart then
         local ping = getPlayerPing()
         updateConfigBasedOnPing(ping)
+        printValues()
         local predictedPosition = resolveVelocity(ball, ping)
         local relativePosition = predictedPosition - rootPart.Position
         local velocity = ball.Velocity + rootPart.Velocity
@@ -154,5 +157,4 @@ local function checkBallsProximity()
     end
 end
 
-printValues()
 RunService.RenderStepped:Connect(checkBallsProximity)
