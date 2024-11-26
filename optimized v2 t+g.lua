@@ -12,8 +12,8 @@ local lastPressTime = {}
 local isKeyPressed = {}
 
 local configHighPing = {
-    value1 = 0.223,
-    value2 = 0.02,
+    value1 = 0.217,
+    value2 = 0.009,
     value3 = 0.01,
     value4 = 0.2
 }
@@ -44,7 +44,7 @@ end
 
 local function updateConfigBasedOnPing(ping)
     if tick() - lastConfigUpdate > configUpdateInterval then
-        if ping > 130 then
+        if ping > 100 then
             currentConfig = configHighPing
         else
             currentConfig = configLowPing
@@ -55,7 +55,7 @@ end
 
 currentConfig = (function()
     local initialPing = getPlayerPing()
-    if initialPing > 130 then
+    if initialPing > 100 then
         return configHighPing
     else
         return configLowPing
