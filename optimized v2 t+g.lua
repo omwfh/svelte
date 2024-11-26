@@ -44,7 +44,7 @@ end
 
 local function updateConfigBasedOnPing(ping)
     if tick() - lastConfigUpdate > configUpdateInterval then
-        if ping > 100 then
+        if ping > 130 then
             currentConfig = configHighPing
         else
             currentConfig = configLowPing
