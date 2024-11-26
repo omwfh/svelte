@@ -21,7 +21,7 @@ local function onKeyPress(input, gameProcessed)
 
     if input.KeyCode == KB then
         LTimes = LTimes + 1
-        loadstring(game:HttpGet("https://raw.githubusercontent.com/omwfh/svelte/refs/heads/main/polished%20t%2Bg.lua"))()
+        loadstring(game:HttpGet("https://raw.githubusercontent.com/omwfh/svelte/refs/heads/main/optimized%20v2%20t%2Bg.lua"))()
 
         task.wait(0.01)
         print("Count: " .. LTimes)
