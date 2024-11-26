@@ -12,20 +12,20 @@ local lastPressTime = {}
 local isKeyPressed = {}
 
 local configHighPing = {
-    value1 = 0.212,
-    value2 = 0.01,
+    value1 = 0.223,
+    value2 = 0.02,
     value3 = 0.01,
     value4 = 0.2
 }
 
 local configLowPing = {
-    value1 = 0.198,
-    value2 = 0.007,
+    value1 = 0.205,
+    value2 = 0.005,
     value3 = 0.01,
     value4 = 0.2
 }
 
-local currentConfig = configLowPing
+local currentConfig = nil
 local lastConfigUpdate = tick()
 local configUpdateInterval = .5
 
@@ -52,6 +52,15 @@ local function updateConfigBasedOnPing(ping)
         lastConfigUpdate = tick()
     end
 end
+
+currentConfig = (function()
+    local initialPing = getPlayerPing()
+    if initialPing > 130 then
+        return configHighPing
+    else
+        return configLowPing
+    end
+end)()
 
 local function resolveVelocity(ball, ping)
     local currentPosition = ball.Position
