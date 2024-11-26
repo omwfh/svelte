@@ -13,9 +13,9 @@ local isKeyPressed = {}
 
 local configLowPing = {
     value1 = 0.282,
-    value2 = 0.03,
-    value3 = 0.03,
-    value4 = 0.3
+    value2 = 0.02,
+    value3 = 0.02,
+    value4 = 0.265
 }
 
 local configMedPing = {
