@@ -11,6 +11,13 @@ local pressCooldown = 0
 local lastPressTime = {}
 local isKeyPressed = {}
 
+local configHighPing = {
+    value1 = 0.223,
+    value2 = 0.02,
+    value3 = 0.01,
+    value4 = 0.2
+}
+
 local configLowPing = {
     value1 = 0.205,
     value2 = 0.005,
@@ -18,33 +25,15 @@ local configLowPing = {
     value4 = 0.2
 }
 
-local configMedPing = {
-    value1 = 0.2,
-    value2 = 0.005,
-    value3 = 0.01,
-    value4 = 0.2
-}
-
-local configHighPing = {
-    value1 = 0.223,
-    value2 = 0.005,
-    value3 = 0.008,
-    value4 = 0.08
-}
-
-local currentConfig = nil
+local currentConfig = configLowPing
 local lastConfigUpdate = tick()
 local configUpdateInterval = .5
 
 local function printValues()
-    print("-------------------------------------------------------------")
-    print("-------------------------------------------------------------")
     print("Base Threshold: " .. currentConfig.value1)
     print("Velocity Factor: " .. currentConfig.value2)
     print("Distance Factor: " .. currentConfig.value3)
     print("math.max: " .. currentConfig.value4)
-    print("-------------------------------------------------------------")
-    print("-------------------------------------------------------------")
 end
 
 local function getPlayerPing()
@@ -57,25 +46,12 @@ local function updateConfigBasedOnPing(ping)
     if tick() - lastConfigUpdate > configUpdateInterval then
         if ping > 130 then
             currentConfig = configHighPing
-        elseif ping > 100 then
-            currentConfig = configMedPing
         else
             currentConfig = configLowPing
         end
         lastConfigUpdate = tick()
     end
 end
-
-currentConfig = (function()
-    local initialPing = getPlayerPing()
-    if initialPing > 130 then
-        return configHighPing
-    elseif initialPing > 100 then
-        return configMedPing
-    else
-        return configLowPing
-    end
-end)()
 
 local function resolveVelocity(ball, ping)
     local currentPosition = ball.Position
@@ -91,6 +67,7 @@ local function calculatePredictionTime(ball, player)
     if rootPart then
         local ping = getPlayerPing()
         updateConfigBasedOnPing(ping)
+       
         local predictedPosition = resolveVelocity(ball, ping)
         local relativePosition = predictedPosition - rootPart.Position
         local velocity = ball.Velocity + rootPart.Velocity
