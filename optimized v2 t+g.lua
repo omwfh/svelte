@@ -11,14 +11,14 @@ local pressCooldown = 0
 local lastPressTime = {}
 local isKeyPressed = {}
 
-local configHighPing = {
+local configLowPing = {
     value1 = 0.322,
     value2 = 0.01,
     value3 = 0.015,
     value4 = 0.3
 }
 
-local configLowPing = {
+local configHighPing = {
     value1 = 0.205,
     value2 = 0.005,
     value3 = 0.01,
