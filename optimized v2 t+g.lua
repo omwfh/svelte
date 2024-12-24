@@ -19,8 +19,8 @@ local configHighPing = {
 }
 
 local configLowPing = {
-    value1 = 0.14,
-    value2 = 0.004,
+    value1 = 0.137,
+    value2 = 0.0038,
     value3 = 0.01,
     value4 = 0.2
 }
