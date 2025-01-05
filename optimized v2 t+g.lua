@@ -12,28 +12,31 @@ local lastPressTime = {}
 local isKeyPressed = {}
 
 local configHighPing = {
-    value1 = 0.21,
-    value2 = 0.0077,
+    value1 = 0.185,
+    value2 = 0.005,
     value3 = 0.01,
     value4 = 0.2
 }
 
 local configLowPing = {
-    value1 = 0.137,
-    value2 = 0.0038,
+    value1 = 0.135,
+    value2 = 0.005,
     value3 = 0.01,
     value4 = 0.2
 }
 
 local currentConfig = nil
 local lastConfigUpdate = tick()
-local configUpdateInterval = .5
+local configUpdateInterval = .1
 
 local function printValues()
+    print("Current Config:")
+    print("-----------------------------------------")
     print("Base Threshold: " .. currentConfig.value1)
     print("Velocity Factor: " .. currentConfig.value2)
     print("Distance Factor: " .. currentConfig.value3)
     print("math.max: " .. currentConfig.value4)
+    print("-----------------------------------------")
 end
 
 local function getPlayerPing()
@@ -101,7 +104,7 @@ local function calculateThreshold(ball, player)
     local pingCompensation = ping * 2
     local baseThreshold = currentConfig.value1 + pingCompensation
 
-    local velocityFactor = math.pow(ball.Velocity.magnitude, 1.5) * currentConfig.value2
+    local velocityFactor = math.pow(ball.Velocity.magnitude, 1.3) * currentConfig.value2
     local distanceFactor = distance * currentConfig.value3
 
     return math.max(baseThreshold, currentConfig.value4 - velocityFactor - distanceFactor)
