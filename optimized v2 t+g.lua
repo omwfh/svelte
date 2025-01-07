@@ -19,10 +19,10 @@ local configHighPing = {
 }
 
 local configLowPing = {
-    value1 = 0.135,
-    value2 = 0.005,
+    value1 = 0.125,
+    value2 = 0.0035,
     value3 = 0.01,
-    value4 = 0.2
+    value4 = 0.18
 }
 
 local currentConfig = nil
