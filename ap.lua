@@ -1,9 +1,15 @@
+local version = "v1.1"
+
+-- Added Debug
+
 setfpscap(240)
 
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local Vim = game:GetService("VirtualInputManager")
+local CollectionService = game:GetService("CollectionService")
+
 local ballFolder = Workspace.Balls
 local trainingFolder = Workspace.TrainingBalls
 
@@ -19,17 +25,23 @@ local configHighPing = {
 }
 
 local configLowPing = {
-    value1 = 0.112,
-    value2 = 0.0035,
-    value3 = 0.0092,
+    value1 = 0.105,
+    value2 = 0.004,
+    value3 = 0.0082,
     value4 = 0.22
 }
 
 local currentConfig = nil
 local lastConfigUpdate = tick()
-local configUpdateInterval = .1
+local configUpdateInterval = 0.1
+
+local minDistance = 5.5
+local lastKnownPositions = {}
+
+local debug = true  -- Set this to true to enable debug output
 
 local function printValues()
+    print("Current Version: " .. version)
     print("Current Config:")
     print("-----------------------------------------")
     print("Base Threshold: " .. currentConfig.value1)
@@ -101,62 +113,57 @@ local function calculateThreshold(ball, player)
     updateConfigBasedOnPing(ping * 1000)
     local distance = (ball.Position - rootPart.Position).Magnitude
 
-    local pingCompensation = ping * 2.35
+    local pingCompensation = ping * 2.2
     local baseThreshold = currentConfig.value1 + pingCompensation
 
-    local velocityFactor = math.pow(ball.Velocity.magnitude, 0.65) * currentConfig.value2
+    local velocityFactor = math.pow(ball.Velocity.magnitude, 0.5) * currentConfig.value2
     local distanceFactor = distance * currentConfig.value3
 
     return math.max(baseThreshold, currentConfig.value4 - velocityFactor - distanceFactor)
 end
 
-local function checkProximityToPlayer(ball, player)
-    local predictionTime = calculatePredictionTime(ball, player)
-    local realBallAttribute = ball:GetAttribute("realBall")
-    local target = ball:GetAttribute("target")
-    local ballSpeedThreshold = calculateThreshold(ball, player)
-    
-    if predictionTime <= ballSpeedThreshold and realBallAttribute and target == player.Name and not isKeyPressed[ball] and (not lastPressTime[ball] or tick() - lastPressTime[ball] > pressCooldown) then
-        Vim:SendKeyEvent(true, Enum.KeyCode.F, false, nil)
-        task.wait()
-        Vim:SendKeyEvent(false, Enum.KeyCode.F, false, nil)
-        
-        lastPressTime[ball] = tick()
-        isKeyPressed[ball] = true
-    elseif lastPressTime[ball] and (predictionTime > ballSpeedThreshold or not realBallAttribute or target ~= player.Name) then
-        isKeyPressed[ball] = false
+local function checkProximityToPlayer()
+    local playerPosition = getPlayerPosition()
+
+    for _, ball in ipairs(getAllBalls()) do
+        if ball and ball.Position then
+            local ballDistance = (ball.Position - playerPosition).Magnitude
+
+            if debug then
+                print("Ball Distance (in studs): " .. ballDistance)
+            end
+
+            if ballDistance > minDistance then
+                continue
+            end
+
+            local predictedPosition = ball.Position + ball.Velocity * 0.3
+
+            if not isKeyPressed[ball] and (tick() - (lastPressTime[ball] or 0) > pressCooldown) then
+                Vim:SendKeyEvent(true, Enum.KeyCode.F, false, nil)
+                task.wait()
+                Vim:SendKeyEvent(false, Enum.KeyCode.F, false, nil)
+                lastPressTime[ball] = tick()
+                isKeyPressed[ball] = true
+            end
+        end
     end
+end
+
+local function getPlayerPosition()
+    local player = Players.LocalPlayer
+    if player and player.Character then
+        local humanoidRootPart = player.Character:FindFirstChild("HumanoidRootPart")
+        if humanoidRootPart then
+            return humanoidRootPart.Position
+        end
+    end
+    return Vector3.new(0, 0, 0)
 end
 
 local function getAllBalls()
-    local allBalls = {}
-    
-    for _, obj in ipairs(Workspace:GetChildren()) do
-        if obj == ballFolder then
-            for _, ball in ipairs(ballFolder:GetChildren()) do
-                table.insert(allBalls, ball)
-            end
-        elseif obj == trainingFolder then
-            for _, trainingBall in ipairs(trainingFolder:GetChildren()) do
-                table.insert(allBalls, trainingBall)
-            end
-        end
-    end
-    
-    return allBalls
-end
-
-local function checkBallsProximity()
-    local player = Players.LocalPlayer
-    
-    if player and player.Character then
-        for _, ball in ipairs(getAllBalls()) do
-            checkProximityToPlayer(ball, player)
-        end
-    else
-        isKeyPressed = {}
-    end
+    return CollectionService:GetTagged("Ball")
 end
 
 printValues()
-RunService.RenderStepped:Connect(checkBallsProximity)
+RunService.Heartbeat:Connect(checkProximityToPlayer)
