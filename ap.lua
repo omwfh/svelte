@@ -36,7 +36,7 @@ local configUpdateInterval = 0.1
 local minDistance = 14.5
 local lastKnownPositions = {}
 
-local debug = true  -- Set this to true to enable debug output
+local debug = false
 
 local function printValues()
     print("Current Version: " .. version)
