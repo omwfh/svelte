@@ -1,7 +1,5 @@
 local version = "v1.1"
 
--- Added Debug
-
 setfpscap(240)
 
 local RunService = game:GetService("RunService")
@@ -25,17 +23,17 @@ local configHighPing = {
 }
 
 local configLowPing = {
-    value1 = 0.105,
-    value2 = 0.004,
-    value3 = 0.0082,
-    value4 = 0.22
+    value1 = 0.127,
+    value2 = 0.003,
+    value3 = 0.0092,
+    value4 = 0.28
 }
 
 local currentConfig = nil
 local lastConfigUpdate = tick()
 local configUpdateInterval = 0.1
 
-local minDistance = 5.5
+local minDistance = 14.5
 local lastKnownPositions = {}
 
 local debug = true  -- Set this to true to enable debug output
