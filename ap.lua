@@ -1,17 +1,38 @@
 setfpscap(240)
 
+local ContextActionService = game:GetService("ContextActionService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local Vim = game:GetService("VirtualInputManager")
+local StarterGui = game:GetService("StarterGui")
+local Settings = UserSettings()
+local GameSettings = Settings.GameSettings
 local ballFolder = Workspace.Balls
 local trainingFolder = Workspace.TrainingBalls
+
+local LocalPlayer = Players.LocalPlayer
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
 
 local pressCooldown = 0
 local lastPressTime = {}
 local isKeyPressed = {}
+local Spring = {}
+Spring.__index = Spring
+
+local pi = math.pi;
+local abs = math.abs;
+local clamp = math.clamp;
+local exp = math.exp;
+local rad = math.rad;
+local sign = math.sign;
+local sqrt = math.sqrt;
+local tan = math.tan;
 
 local configHighPing = {
     value1 = 0.118,
@@ -50,19 +71,99 @@ local lastTargetSwitch = 0
 local lastActionTime = 0
 local currentTargetPlayer = nil
 
-local SILENT_AIM_ENABLED = true
-local silentAimTarget = nil
+local FFlagUserExitFreecamBreaksWithShiftlock
 
--- Movement pattern configurations
 local MOVE_PATTERNS = {
     spin = {Enum.KeyCode.A, Enum.KeyCode.W, Enum.KeyCode.D, Enum.KeyCode.S},
     zigzag = {Enum.KeyCode.A, Enum.KeyCode.D},
 }
+
+local TOGGLE_INPUT_PRIORITY = Enum.ContextActionPriority.Low.Value
+local INPUT_PRIORITY = Enum.ContextActionPriority.High.Value
+local FREECAM_MACRO_KB = {Enum.KeyCode.P}
+
+local NAV_GAIN = Vector3.new(1, 1, 1) * 64
+local PAN_GAIN = Vector2.new(0.75, 1) * 8
+local FOV_GAIN = 300
+
+local PITCH_LIMIT = rad(90)
+
+local VEL_STIFFNESS = 1.5
+local PAN_STIFFNESS = 1.0
+local FOV_STIFFNESS = 4.0
+
+local cameraPos = Vector3.new()
+local cameraRot = Vector2.new()
+local cameraFov = 0
+
 local movePatternIndex = 1
 local lastMovePatternTime = 0
 local MOVE_PATTERN_INTERVAL = 0.5
 
--- Tween configurations
+local PlayerState = {}
+local mouseBehavior
+local mouseIconEnabled
+local cameraType
+local cameraFocus
+local cameraCFrame
+local cameraFieldOfView
+local screenGuis = {}
+
+local coreGuis = {
+    Backpack = true,
+    Chat = true,
+    Health = true,
+    PlayerList = true,
+}
+
+local setCores = {
+    BadgesNotificationsActive = true,
+    PointsNotificationsActive = true,
+}
+
+local Camera = Workspace.CurrentCamera
+Workspace:GetPropertyChangedSignal("CurrentCamera"):Connect(function()
+    local newCamera = Workspace.CurrentCamera
+    if newCamera then
+        Camera = newCamera
+    end
+end)
+
+local success, result = pcall(function()
+    return UserSettings():IsUserFeatureEnabled("UserExitFreecamBreaksWithShiftlock")
+end)
+FFlagUserExitFreecamBreaksWithShiftlock = success and result
+
+function Spring.new(freq, pos)
+    local self = setmetatable({}, Spring)
+    self.f = freq
+    self.p = pos
+    self.v = pos * 0
+    return self
+end
+
+function Spring:Update(dt, goal)
+    local f = self.f * 2 * pi
+    local p0 = self.p
+    local v0 = self.v
+
+    local offset = goal - p0
+    local decay = exp(-f * dt)
+
+    local p1 = goal + (v0 * dt - offset * (f * dt + 1)) * decay
+    local v1 = (f * dt * (offset * f - v0) + v0) * decay
+
+    self.p = p1
+    self.v = v1
+
+    return p1
+end
+
+function Spring:Reset(pos)
+    self.p = pos
+    self.v = pos * 0
+end
+
 local function tweenTrajectoryDot(dot, startPos, endPos)
     local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
     local goal = {Position = endPos}
@@ -92,19 +193,135 @@ local function visualizeBallTrajectory(ball)
     createTrajectoryDot(currentPos, predictedPos)
 end
 
-local function toggleFreeCam()
-    -- Free camera script goes here (abbreviated for clarity)
-    -- Integrate the provided free camera script here.
+local function CheckMouseLockAvailability()
+    local devAllowsMouseLock = Players.LocalPlayer.DevEnableMouseLock
+    local devMovementModeIsScriptable = Players.LocalPlayer.DevComputerMovementMode == Enum.DevComputerMovementMode.Scriptable
+    local userHasMouseLockModeEnabled = GameSettings.ControlMode == Enum.ControlMode.MouseLockSwitch
+    local userHasClickToMoveEnabled = GameSettings.ComputerMovementMode == Enum.ComputerMovementMode.ClickToMove
+    return devAllowsMouseLock and userHasMouseLockModeEnabled and not userHasClickToMoveEnabled and not devMovementModeIsScriptable
 end
 
-UserInputService.InputBegan:Connect(function(input, gameProcessed)
-    if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.LeftShift and UserInputService:IsKeyDown(Enum.KeyCode.P) then
-        toggleFreeCam()
-    end
-end)
+local velSpring = Spring.new(VEL_STIFFNESS, Vector3.new())
+local panSpring = Spring.new(PAN_STIFFNESS, Vector2.new())
+local fovSpring = Spring.new(FOV_STIFFNESS, 0)
 
--- Perform movement patterns
+function PlayerState.Push()
+    for name in pairs(coreGuis) do
+        coreGuis[name] = StarterGui:GetCoreGuiEnabled(Enum.CoreGuiType[name])
+        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType[name], false)
+    end
+    for name in pairs(setCores) do
+        setCores[name] = StarterGui:GetCore(name)
+        StarterGui:SetCore(name, false)
+    end
+    local playergui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+    if playergui then
+        for _, gui in pairs(playergui:GetChildren()) do
+            if gui:IsA("ScreenGui") and gui.Enabled then
+                screenGuis[#screenGuis + 1] = gui
+                gui.Enabled = false
+            end
+        end
+    end
+
+    cameraFieldOfView = Camera.FieldOfView
+    Camera.FieldOfView = 70
+
+    cameraType = Camera.CameraType
+    Camera.CameraType = Enum.CameraType.Custom
+
+    cameraCFrame = Camera.CFrame
+    cameraFocus = Camera.Focus
+
+    mouseIconEnabled = UserInputService.MouseIconEnabled
+    UserInputService.MouseIconEnabled = false
+
+    mouseBehavior = FFlagUserExitFreecamBreaksWithShiftlock and CheckMouseLockAvailability() and Enum.MouseBehavior.Default or UserInputService.MouseBehavior
+    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+end
+
+function PlayerState.Pop()
+    for name, isEnabled in pairs(coreGuis) do
+        StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType[name], isEnabled)
+    end
+    for name, isEnabled in pairs(setCores) do
+        StarterGui:SetCore(name, isEnabled)
+    end
+    for _, gui in pairs(screenGuis) do
+        if gui.Parent then
+            gui.Enabled = true
+        end
+    end
+
+    Camera.FieldOfView = cameraFieldOfView
+    cameraFieldOfView = nil
+
+    Camera.CameraType = cameraType
+    cameraType = nil
+
+    Camera.CFrame = cameraCFrame
+    cameraCFrame = nil
+
+    Camera.Focus = cameraFocus
+    cameraFocus = nil
+
+    UserInputService.MouseIconEnabled = mouseIconEnabled
+    mouseIconEnabled = nil
+
+    UserInputService.MouseBehavior = mouseBehavior
+    mouseBehavior = nil
+end
+
+local function StartFreecam()
+    local cameraCFrame = Camera.CFrame
+    cameraRot = Vector2.new(cameraCFrame:ToOrientation())
+    cameraPos = cameraCFrame.Position
+    cameraFov = Camera.FieldOfView
+
+    velSpring:Reset(Vector3.new())
+    panSpring:Reset(Vector2.new())
+    fovSpring:Reset(0)
+
+    PlayerState.Push()
+    RunService:BindToRenderStep("Freecam", Enum.RenderPriority.Camera.Value, StepFreecam)
+    Input.StartCapture()
+end
+
+local function StopFreecam()
+    Input.StopCapture()
+    RunService:UnbindFromRenderStep("Freecam")
+    PlayerState.Pop()
+end
+
+local enabled = false
+
+local function toggleFreeCam()
+    if enabled then
+        StopFreecam()
+    else
+        StartFreecam()
+    end
+    enabled = not enabled
+end
+
+local function CheckMacro(macro)
+    for i = 1, #macro - 1 do
+        if not UserInputService:IsKeyDown(macro[i]) then
+            return
+        end
+    end
+    ToggleFreecam()
+end
+
+local function HandleActivationInput(action, state, input)
+    if state == Enum.UserInputState.Begin then
+        if input.KeyCode == FREECAM_MACRO_KB[#FREECAM_MACRO_KB] then
+            CheckMacro(FREECAM_MACRO_KB)
+        end
+    end
+    return Enum.ContextActionResult.Pass
+end
+
 local function performMovePattern(pattern)
     local key = pattern[movePatternIndex]
     Vim:SendKeyEvent(true, key, false, nil)
@@ -130,11 +347,43 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         AFK_ENABLED = false
         AUTOPARRY_ENABLED = false
         print("Master Toggle: " .. tostring(MASTER_ENABLED))
-    elseif input.KeyCode == Enum.KeyCode.H then
-        SILENT_AIM_ENABLED = not SILENT_AIM_ENABLED
-        print("Silent Aim: " .. tostring(SILENT_AIM_ENABLED))
     end
 end)
+
+local function createMobileUI()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+    local afkButton = Instance.new("TextButton")
+    afkButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+    afkButton.Position = UDim2.new(0.1, 0, 0.8, 0)
+    afkButton.Text = "Toggle AFK"
+    afkButton.Parent = screenGui
+
+    local autoparryButton = Instance.new("TextButton")
+    autoparryButton.Size = UDim2.new(0.2, 0, 0.1, 0)
+    autoparryButton.Position = UDim2.new(0.7, 0, 0.8, 0)
+    autoparryButton.Text = "Toggle Autoparry"
+    autoparryButton.Parent = screenGui
+
+    afkButton.MouseButton1Click:Connect(function()
+        if MASTER_ENABLED then
+            AFK_ENABLED = not AFK_ENABLED
+            print("AFK Mode: " .. tostring(AFK_ENABLED))
+        end
+    end)
+
+    autoparryButton.MouseButton1Click:Connect(function()
+        if MASTER_ENABLED then
+            AUTOPARRY_ENABLED = not AUTOPARRY_ENABLED
+            print("Autoparry Mode: " .. tostring(AUTOPARRY_ENABLED))
+        end
+    end)
+end
+
+if UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled then
+    createMobileUI()
+end
 
 local function getPlayerPing()
     local stats = game:GetService("Stats")
@@ -161,6 +410,20 @@ currentConfig = (function()
         return configLowPing
     end
 end)()
+
+local function printValues()
+    local formattedOutput = {
+        "Current Config:",
+        "-----------------------------------------",
+        string.format("Base Threshold: %.4f", currentConfig.value1),
+        string.format("Velocity Factor: %.4f", currentConfig.value2),
+        string.format("Distance Factor: %.4f", currentConfig.value3),
+        string.format("Math Max: %.4f", currentConfig.value4),
+        "-----------------------------------------"
+    }
+
+    print(table.concat(formattedOutput, "\n"))
+end
 
 local function resolveVelocity(ball, ping)
     local currentPosition = ball.Position
@@ -243,18 +506,7 @@ local function selectRandomPlayer()
     return nil
 end
 
-local function getSilentAimTarget()
-    if not SILENT_AIM_ENABLED then return nil end
-
-    silentAimTarget = math.random() < 0.5 and findNearestPlayer() or selectRandomPlayer()
-    return silentAimTarget
-end
-
 local function spoofCameraToPlayer(targetPlayer)
-    if SILENT_AIM_ENABLED then
-        targetPlayer = getSilentAimTarget() or targetPlayer
-    end
-
     local localPlayer = Players.LocalPlayer
     local targetRootPart = targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart")
 
@@ -276,7 +528,6 @@ end
 RunService.RenderStepped:Connect(function()
     if not MASTER_ENABLED or not AFK_ENABLED then return end
 
-    -- Execute movement patterns
     if tick() - lastMovePatternTime >= MOVE_PATTERN_INTERVAL then
         if math.random() < 0.5 then
             performMovePattern(MOVE_PATTERNS.spin)
@@ -286,7 +537,6 @@ RunService.RenderStepped:Connect(function()
         lastMovePatternTime = tick()
     end
 
-    -- Visualize trajectories
     for _, ball in ipairs(getAllBalls()) do
         visualizeBallTrajectory(ball)
     end
@@ -351,7 +601,7 @@ local function checkProximityToPlayer(ball, player)
     if predictionTime <= ballSpeedThreshold and realBallAttribute and target == player.Name and not isKeyPressed[ball] and (not lastPressTime[ball] or tick() - lastPressTime[ball] > pressCooldown) then
         Vim:SendKeyEvent(true, Enum.KeyCode.F, false, nil)
         task.wait()
-        Vim:SendKeyEvent(false, Enum.KeyCode.F, false, nil)
+        Vim:SendKeyEvent(false, key, false, nil)
         lastPressTime[ball] = tick()
         isKeyPressed[ball] = true
     elseif lastPressTime[ball] and (predictionTime > ballSpeedThreshold or not realBallAttribute or target ~= player.Name) then
@@ -387,5 +637,6 @@ local function checkBallsProximity()
     end
 end
 
-print("Script Updated with Movement Patterns, Visualization, and Free Cam")
+printValues()
 RunService.RenderStepped:Connect(checkBallsProximity)
+ContextActionService:BindActionAtPriority("FreecamToggle", HandleActivationInput, false, TOGGLE_INPUT_PRIORITY, FREECAM_MACRO_KB[#FREECAM_MACRO_KB])
